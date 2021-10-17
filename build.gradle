@@ -1,0 +1,67 @@
+plugins {
+	id 'org.springframework.boot' version '2.5.5'
+	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+	id 'java'
+	id 'war'
+	id "org.asciidoctor.convert" version "1.5.9.2" // (1) asciiDoc -> html로 변환하는 플러그인
+}
+
+group = 'restful'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	runtimeOnly 'com.h2database:h2'
+	providedRuntime 'org.springframework.boot:spring-boot-starter-tomcat'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test' // JUnit5, Hamcrest 및 Mockito가 모두 포함
+
+	// MySql
+	implementation group: 'mysql', name: 'mysql-connector-java', version: '8.0.16'
+
+	// (2) Spring Boot을 사용한다면 프로젝트 버전 명시할 필요 없음
+	asciidoctor 'org.springframework.restdocs:spring-restdocs-asciidoctor'
+	testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc' //mockmvc 를 restdocs 에 사용하게 돕는 라이브러리
+}
+
+// (3)
+// build/generated-snippets 경로에 스니펫이 생성됩니다.
+//문서 조각인 스니펫이 생성되는 경로
+ext {
+	snippetsDir = file('build/generated-snippets')
+}
+
+// (4)
+// gradle build시 test -> asciidoctor 순으로 실행됩니다.
+asciidoctor {
+	inputs.dir snippetsDir
+	dependsOn test
+}
+
+// (5)
+// gradle build시 ./build/asciidoc/html/ 에 html 파일이 생성됩니다.
+// build/asciidoc/html5에 있는 컨버팅 된 html을 jar로 복붙
+bootJar {
+	dependsOn asciidoctor
+	from ("${asciidoctor.outputDir}/html5") {
+		into 'static/docs'
+	}
+}
+
+test {
+	outputs.dir snippetsDir // (6)
+	useJUnitPlatform()
+}
